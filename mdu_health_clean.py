@@ -1,21 +1,35 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import re
 import json
+import re
 
 isTest = True
 cleaning = False
 indent1 = ' '
 indent2 = '  '
 
-data_fn = "V-L7-C4-7112-ONT24.txt"
+data_fn = "V-L3-C4-3131-ONT16.txt"
+command_list_fn = 'command_list.json'
 
 
-def get_ont_name(the_rx_dict, the_lines):
-    match = get_matched(the_rx_dict, the_lines, 'ont_name')
-    if match:
-        return match.string.split('>')[0]
-    return None
+def command_type(cmd):
+    entcmds = ["display current-configuration", "display version"]
+    yescmds = ["port mode 0/0 gpon", "igmp mode snooping", "igmp version"]
+    eraseflash = ["erase flash data", "reboot system"]
+    cmd = cmd.strip()
+    cmd = cmd.rstrip("\n")
+    if cmd.strip() in entcmds:
+        return 1  # extra \n
+    elif cmd in yescmds:
+        return 2  # y
+    elif cmd in '':
+        return 3  # quit
+    elif cmd in '':
+        return 4  # need config
+    elif cmd in eraseflash:
+        return 100  # erase flash & reboot
+    else:
+        return 0
 
 
 def get_matched(the_rx_dict, the_lines, the_key):
@@ -43,7 +57,7 @@ def find_substring(line, substring_list=None, substring=None):
 
 class ONTDataClean_OVH:
     filepath = data_fn
-    outputfilepath = 'command_list.json'
+    outputfilepath = command_list_fn
     lines = []
     rx_dict = {
         'ont_name': re.compile(r'^.*>')
@@ -59,10 +73,6 @@ class ONTDataClean_OVH:
         with open(self.filepath, 'r') as file_object:
             file_object.seek(0)
             self.lines = file_object.readlines()
-
-        # TODO: incorrect
-        ontnm = get_ont_name(self.rx_dict, self.lines)
-        _ontnmkey = ontnm + '#'
 
         cmdlist = []  # output of the cmd list
         index = 0  # index of the lines list
@@ -203,7 +213,7 @@ class ONTDataClean_OVH:
                         # merge the line
                         cmd = "{0} {1}".format(cmd.strip(), line.strip())
                         index0 += 1
-                    self.cmd_append(cmdlist, cmd)
+                    self.cmd_append(cmdlist, cmd.strip() + '\n', wtm=1.0)
                     index = index0
                     index, line, larr, indent = self.get_line(index)
                 print("step 5 completed")
@@ -216,10 +226,12 @@ class ONTDataClean_OVH:
                     if len(larr) <= 0:
                         continue
                     if larr[0] == "multicast-vlan":
-                        self.cmd_append(cmdlist, cmd)
+                        self.cmd_append(cmdlist, line)
                     elif larr[0] == "igmp":
                         if larr[1] == "user" and larr[2] == "add":
                             self.cmd_append(cmdlist, line)
+                        if larr[1] == "version":
+                            self.cmd_append(cmdlist, line, type=2)
                         else:
                             self.cmd_append(cmdlist, line)
                     index, line, larr, indent = self.get_line(index)
@@ -237,10 +249,11 @@ class ONTDataClean_OVH:
             # increase the index and read next line
             index, line, larr, indent = self.get_line(index)
 
-        with open(self.outputfilepath, "w") as FILE:
-            json.dump(cmdlist, FILE)
+        # with open(self.outputfilepath, "w") as FILE:
+        #     json.dump(cmdlist, FILE)
 
         print("cmdlist all done")
+        return cmdlist
 
     def split_lines_vlan(self, cmdlist, larr, line):
         if find_substring(line, substring="to"):  # seperate to 2+ lines
@@ -303,4 +316,7 @@ class ONTDataClean_OVH:
 
 if __name__ == '__main__':
     ovhont = ONTDataClean_OVH(filepath=data_fn)
-    ovhont.parse_file()
+    command_list_fn = data_fn[:len(data_fn) - 3] + "json"
+    cmdlist = ovhont.parse_file()
+    with open(command_list_fn, "w") as FILE:
+        json.dump(cmdlist, FILE)
