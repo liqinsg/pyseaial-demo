@@ -1,3 +1,6 @@
 venv/
 *.txt
 credentials.json
+V-*.json
+.idea
+.vscode

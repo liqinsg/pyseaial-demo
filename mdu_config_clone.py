@@ -12,7 +12,7 @@ addr = "COM10"  ## serial port to read data from
 isTest = True
 isErase = False
 
-cmd_fn_json = "command_list.json"
+cmd_fn_json = "V-L3-C4-3131-ONT16.json"
 SHORT_SLEEP = 1
 LONG_SLEEP5 = 5
 LONG_SLEEP10 = 10
@@ -31,34 +31,40 @@ def send_to_console(ser: serial.Serial, command: str, wait_time: float = 0.5):
     return out, list[len(list) - 1]
 
 
-def get_cmds_json():
+def get_cmds_json(cmd_fn=cmd_fn_json):
     global cmdlist_json
-    with open(cmd_fn_json) as f:
+    with open(cmd_fn) as f:
         cmdlist_json = json.load(f)
+    # sort json
+    cmdlist_json = sorted(cmdlist_json, key=lambda k: k['index'], reverse=False)
     return cmdlist_json
 
 
-def mdu_config(erase=False):
+def mdu_config(erase=False, cmd_fn=cmd_fn_json):
     with serial.Serial(addr, timeout=1) as ser:
         print(f"Connecting to {ser.name}...")
         while True:
             output_data, out = send_to_console(ser, "\r\n")
-            if len(out) > 0 and out[len(out) - 1] == '>':
+            k = out[2:len(out) - 1] if len(out) > 2 else None
+            j = out[len(out) - 1] if len(out) > 1 else None
+            if len(out) < 1:
+                send_to_console(ser, "\r\n")
+            elif j == '>':
                 # it seems the mdu is login, enable
                 send_to_console(ser, "enable")
                 send_to_console(ser, "config")
                 send_to_console(ser, "scroll\r\n")
                 break
-            elif len(out) > 1 and out[len(out) - 2:] == ')#' and out.find('(config)#') == -1:
+            elif out[len(out) - 2:] == ')#' and out.find('(config)#') == -1:
                 # it seems the mdu is enabled in privilege mode. will run commands
                 send_to_console(ser, "quit\r\n")
-            elif len(out) > 0 and out[len(out) - 1] == '#':
+            elif out[len(out) - 1] == '#':
                 # it seems the mdu is enabled in privilege mode. will run commands
                 send_to_console(ser, "scroll\r\n")
                 if out.find('(config)#') == -1:
                     send_to_console(ser, "config")
                 break
-            elif len(out) > 2 and out[2:len(out) - 1] == 'User name':
+            elif k == 'User name':
                 # it seems the mdu is enabled in privilege mode. will run commands
                 send_to_console(ser, "root")
                 send_to_console(ser, "mduadmin", wait_time=LONG_SLEEP5)
@@ -68,7 +74,7 @@ def mdu_config(erase=False):
                 send_to_console(ser, "scroll\r\n")
                 send_to_console(ser, "config")
                 break
-            elif len(out) > 2 and out[2:len(out) - 1] == 'User password':
+            elif k == 'User password':
                 # it seems the mdu is enabled in privilege mode. will run commands
                 send_to_console(ser, "mduadmin")
                 send_to_console(ser, "enable")
@@ -110,13 +116,15 @@ def mdu_config(erase=False):
                 return False
 
         # continue with commands
-        get_cmds_json()
+        get_cmds_json(cmd_fn)
         cmdlist = cmdlist_json
         """
         cmd type 0: normal, 1:  <cr> to continue, 2: y to confirm, 3: quit back to pre-tier
         """
         for cmd_json in cmdlist:
             cmd = cmd_json["cmd"].lstrip()
+            if str.strip(cmd) == "poe 1 max-power 30000":
+                print(cmd)
             type = cmd_json["type"]
             wtime = cmd_json["wtm"]
             if cmd.find("service-port 0 vlan 2007 eth 0/1/1 multi-service") != -1:
