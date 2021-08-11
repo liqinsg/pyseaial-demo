@@ -5,7 +5,7 @@ from mdu_health_clean import ONTDataClean_OVH
 
 if __name__ == '__main__':
     # erase the system or not
-    isErase = False
+    isErase = True
     # the file name of the mdu
     data_fn = "V-L7-C4-7112-ONT24.txt"
 
