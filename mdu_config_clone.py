@@ -12,7 +12,7 @@ addr = "COM10"  ## serial port to read data from
 isTest = True
 isErase = False
 
-cmd_fn_json = "command_list.json"
+cmd_fn_json = "V-L3-C4-3131-ONT16.json"
 SHORT_SLEEP = 1
 LONG_SLEEP5 = 5
 LONG_SLEEP10 = 10
@@ -35,6 +35,8 @@ def get_cmds_json():
     global cmdlist_json
     with open(cmd_fn_json) as f:
         cmdlist_json = json.load(f)
+    # sort json
+    cmdlist_json = sorted(cmdlist_json, key=lambda k: k['index'], reverse=False)
     return cmdlist_json
 
 

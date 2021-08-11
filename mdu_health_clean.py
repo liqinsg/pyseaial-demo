@@ -94,12 +94,10 @@ class ONTDataClean_OVH:
             if find_substring(str.strip(line), substring="[global-config]"):
                 index += 2
                 line = self.readline(index)
-                cmd = {"cmd": line, "type": 0, "wtm": 0.5}
-                cmdlist.append(cmd)
+                # cmd = {"index":index, "cmd": line, "type": 0, "wtm": 0.5}
+                # cmdlist.append(cmd)
+                self.cmd_append(cmdlist, index, line)
                 while not self.ishax(line):
-                    # index, line, larr, indent = self.get_line(index)
-                    # if self.ishax(line):
-                    #     break
                     if find_substring(line, substring="traffic table ip index"):
                         c1 = line
                         index += 1
@@ -108,7 +106,7 @@ class ONTDataClean_OVH:
                         c3 = self.readline(index)
                         # merge the 3 lines
                         c = "{0} {1} {2}".format(c1.strip(), c2.strip(), c3.strip())
-                        self.cmd_append(cmdlist, c)
+                        self.cmd_append(cmdlist, index, c)
                         # sess_done = True
                         break
 
@@ -130,7 +128,7 @@ class ONTDataClean_OVH:
                  port vlan 180 0/0 1
                  #
                 """
-                self.cmd_append(cmdlist, "port mode 0/0 gpon")
+                self.cmd_append(cmdlist, index, "port mode 0/0 gpon")
                 index, line, larr, indent = self.get_line(index)
                 while not self.ishax(line):
                     # index, line = self.get_line(index)
@@ -140,11 +138,11 @@ class ONTDataClean_OVH:
                     if len(larr) <= 0:
                         continue
                     if larr[0] == "vlan":
-                        self.split_lines_vlan(cmdlist, larr, line)
+                        self.split_lines_vlan(cmdlist, index, larr, line)
                     elif find_substring(line, substring="protocol"):
-                        self.cmd_append(cmdlist, line)
+                        self.cmd_append(cmdlist, index, line)
                     elif larr[0] == "port":
-                        self.split_lines_port(cmdlist, line)
+                        self.split_lines_port(cmdlist, index, line)
 
                     index, line, larr, indent = self.get_line(index)
                 print("step 2 completed")
@@ -164,24 +162,24 @@ class ONTDataClean_OVH:
                         # TODO: should consider filter the 2 indent line
                         # and add quit at the end of the session
                         if larr[1] == "bind":
-                            self.cmd_append(cmdlist, line)
+                            self.cmd_append(cmdlist, index, line)
                             break
-                        self.cmd_append(cmdlist, line)
+                        self.cmd_append(cmdlist, index, line)
                         index, line, larr, indent = self.get_line(index)
                         # if self.ishax(line):
                         #     break
-                        self.cmd_append(cmdlist, line, )
+                        self.cmd_append(cmdlist, index, line, )
                         if larr[0] == "packet-policy":
                             index, line, larr, indent = self.get_line(index)
                             if larr[0] == "commit":
-                                self.cmd_append(cmdlist, line, type=3)
+                                self.cmd_append(cmdlist, index, line, type=3)
                             else:
                                 print("some thing wrong?")
                         else:
                             index, line, larr, indent = self.get_line(index)
                             if self.ishax(line):
                                 break
-                            self.cmd_append(cmdlist, line)
+                            self.cmd_append(cmdlist, index, line)
 
                     index, line, larr, indent = self.get_line(index)
                 print("step 3 completed")
@@ -189,17 +187,17 @@ class ONTDataClean_OVH:
             elif str.strip(line) == "[eth]":  # find_substring(line, substring_list="[eth]"):
                 index += 2
                 line = self.readline(index)
-                self.cmd_append(cmdlist, line)
+                self.cmd_append(cmdlist, index, line)
                 index += 1
                 line = self.readline(index)
-                self.cmd_append(cmdlist, line, type=3)
+                self.cmd_append(cmdlist, index, line, type=3)
                 print("step 4 completed")
             # step 5
             elif str.strip(line) == "[bbs-config]":  # find_substring(line, substring_list="[bbs-config]"):
                 sess_done = False
                 index += 2
                 line = self.readline(index)
-                self.cmd_append(cmdlist, line)
+                self.cmd_append(cmdlist, index, line)
                 index, line, larr, indent = self.get_line(index)
                 while larr[0] == "service-port" and not self.ishax(line):
                     index0 = index
@@ -213,7 +211,7 @@ class ONTDataClean_OVH:
                         # merge the line
                         cmd = "{0} {1}".format(cmd.strip(), line.strip())
                         index0 += 1
-                    self.cmd_append(cmdlist, cmd.strip() + '\n', wtm=1.0)
+                    self.cmd_append(cmdlist, index, cmd.strip() + '\n', wtm=1.0)
                     index = index0
                     index, line, larr, indent = self.get_line(index)
                 print("step 5 completed")
@@ -221,28 +219,28 @@ class ONTDataClean_OVH:
             elif str.strip(line) == "[btv-config]":  # find_substring(line, substring_list="[btv-config]"):
                 index += 2
                 line = self.readline(index)
-                self.cmd_append(cmdlist, line)
+                self.cmd_append(cmdlist, index, line)
                 while not self.ishax(line):
                     if len(larr) <= 0:
                         continue
                     if larr[0] == "multicast-vlan":
-                        self.cmd_append(cmdlist, line)
+                        self.cmd_append(cmdlist, index, line)
                     elif larr[0] == "igmp":
                         if larr[1] == "user" and larr[2] == "add":
-                            self.cmd_append(cmdlist, line)
+                            self.cmd_append(cmdlist, index, line)
                         if larr[1] == "version":
-                            self.cmd_append(cmdlist, line, type=2)
+                            self.cmd_append(cmdlist, index, line, type=2)
                         else:
-                            self.cmd_append(cmdlist, line)
+                            self.cmd_append(cmdlist, index, line)
                     index, line, larr, indent = self.get_line(index)
 
-                self.cmd_append(cmdlist, "quit")
+                self.cmd_append(cmdlist, index, "quit")
 
                 print("step 6 completed")
             # step 7
             elif str.strip(line) == "[prevlanif]":  # find_substring(line, substring_list="[prevlanif]"):
                 while not self.ishax(line):
-                    self.cmd_append(cmdlist, line, type=3)
+                    self.cmd_append(cmdlist, index, line, type=3)
                     index, line, larr, indent = self.get_line(index)
                 print("step 7 completed")
 
@@ -255,17 +253,17 @@ class ONTDataClean_OVH:
         print("cmdlist all done")
         return cmdlist
 
-    def split_lines_vlan(self, cmdlist, larr, line):
+    def split_lines_vlan(self, cmdlist, index, larr, line):
         if find_substring(line, substring="to"):  # seperate to 2+ lines
             i, j = int(larr[1]), int(larr[3])
             s = larr[len(larr) - 1]
             for k in range(i, j + 1):
                 c = "{0} {1} {2}".format(larr[0], k, s)
-                self.cmd_append(cmdlist, c)
+                self.cmd_append(cmdlist, index, c)
         else:
-            self.cmd_append(cmdlist, line)
+            self.cmd_append(cmdlist, index, line)
 
-    def split_lines_port(self, cmdlist, line):
+    def split_lines_port(self, cmdlist, index, line):
         larr = line.split()
         if find_substring(line, substring="to"):  # seperate to 2+ lines
             i, j = int(larr[2]), int(larr[4])
@@ -273,12 +271,12 @@ class ONTDataClean_OVH:
             # s = larr[len(larr) - 1]
             for k in range(i, j + 1):
                 c = "port vlan {0} {1}".format(k, r)
-                self.cmd_append(cmdlist, c)
+                self.cmd_append(cmdlist, index, c)
         else:
-            self.cmd_append(cmdlist, line)
+            self.cmd_append(cmdlist, index, line)
 
-    def cmd_append(self, cmdlist, cmd: str = '\r\n', type=0, wtm: float = 0.5):
-        cmdlist.append({"cmd": cmd, "type": type, "wtm": wtm})
+    def cmd_append(self, cmdlist, index, cmd: str = '\r\n', type=0, wtm: float = 0.5):
+        cmdlist.append({"index": index, "cmd": cmd, "type": type, "wtm": wtm})
 
     def ishax(self, line):
         b = len(line) > 0
