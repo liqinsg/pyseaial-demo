@@ -118,19 +118,26 @@ def mdu_config(erase=False, cmd_fn=cmd_fn_json):
         # continue with commands
         get_cmds_json(cmd_fn)
         cmdlist = cmdlist_json
+        cmdlist = [{
+            "index": 144,
+            "cmd": " display current-configuration\n",
+            "type": 1,
+            "wtm": 30
+        }]
         """
         cmd type 0: normal, 1:  <cr> to continue, 2: y to confirm, 3: quit back to pre-tier
         """
         for cmd_json in cmdlist:
             cmd = cmd_json["cmd"].lstrip()
-            if str.strip(cmd) == "poe 1 max-power 30000":
-                print(cmd)
+            # if str.strip(cmd) == "poe 1 max-power 30000":
+            #     print(cmd)
             type = cmd_json["type"]
             wtime = cmd_json["wtm"]
-            if cmd.find("service-port 0 vlan 2007 eth 0/1/1 multi-service") != -1:
-                print(cmd)
+            # if cmd.find("service-port 0 vlan 2007 eth 0/1/1 multi-service") != -1:
+            #     print(cmd)
             if type == 1:
-                send_to_console(ser, cmd)
+                send_to_console(ser, cmd, wait_time=wtime)
+                sleep(30)
                 out1, output = send_to_console(ser, '\r\n', wait_time=wtime)
             elif type == 2:
                 send_to_console(ser, cmd.rstrip('\n'), wait_time=wtime)
