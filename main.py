@@ -2,10 +2,10 @@ import json
 
 from mdu_config_clone import mdu_config
 from mdu_health_clean import ONTDataClean_OVH
-
 if __name__ == '__main__':
     # erase the system or not
     isErase = True
+    config_compare = False
     # the file name of the mdu
     data_fn = "V-L7-C4-7112-ONT24.txt"
 
@@ -25,3 +25,6 @@ if __name__ == '__main__':
         cmd_fn_json = command_list_fn
         mdu_config(erase=False, cmd_fn=command_list_fn)
 
+    if config_compare:
+        config_result = ovhont.parse_config()
+        print(config_result)

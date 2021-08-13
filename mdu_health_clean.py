@@ -67,6 +67,10 @@ class ONTDataClean_OVH:
         if filepath is not None:
             self.filepath = filepath
 
+    def parse_config(self):
+        retval = True
+        return retval
+
     def parse_file(self, filepath=None):
         if filepath is not None:
             self.filepath = filepath
